@@ -730,9 +730,13 @@ add_action('admin_footer', function() {
 
                 // Initialiser Select2 pour la classe de taxe
                 $('#ghost_product_tax_class').select2({
-                    placeholder: 'Sélectionner une classe de taxe',
+                    // Remove the placeholder option
+                    // placeholder: 'Sélectionner une classe de taxe',
                     allowClear: true
                 });
+
+                // Remove the explicit value setting as it might not be needed without the placeholder
+                // $('#ghost_product_tax_class').val('').trigger('change.select2');
 
                 // Gérer la création de nouvelle marque
                 $('#ghost_new_brand').on('keypress', function(e) {
