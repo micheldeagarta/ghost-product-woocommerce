@@ -1895,3 +1895,91 @@ function calculate_gls_rate_simplified($method_id, $order) {
     error_log("GLS Simplified Rate: Cheapest rate cost found: " . $final_cost);
     return $final_cost;
 }
+
+add_action('admin_footer', function() {
+    global $post;
+    // Only load the modal on order edit pages
+    if ($post && $post->post_type === 'shop_order') {
+        ?>
+        <style>
+            .price-percentage-field {
+                display: inline-block;
+                margin-left: 10px;
+            }
+            .price-percentage-field input {
+                width: 80px !important;
+            }
+            .price-percentage-field label {
+                margin-right: 5px;
+            }
+        </style>
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // Stocker le prix original pour chaque ligne
+            var originalPrices = {};
+
+            // Ajouter le champ pourcentage à chaque ligne
+            function addPercentageField() {
+                $('.item').each(function() {
+                    var $lineCost = $(this).find('.line_cost .edit .split-input');
+                    if (!$lineCost.find('.price-percentage-field').length) {
+                        var $percentageField = $('<div class="price-percentage-field"><label>%</label><input type="number" step="0.01" class="price-percentage" /></div>');
+                        $lineCost.append($percentageField);
+                        
+                        // Stocker le prix original
+                        var itemId = $(this).find('input.order_item_id').val();
+                        var $subtotalField = $lineCost.find('input.line_subtotal');
+                        if ($subtotalField.length) {
+                            var subtotal = parseFloat($subtotalField.val().toString().replace(',', '.')) || 0;
+                            originalPrices[itemId] = subtotal;
+                        }
+                    }
+                });
+            }
+
+            // Gérer les changements de pourcentage
+            $(document).on('input', '.price-percentage', function() {
+                var $percentageField = $(this);
+                var $lineCost = $percentageField.closest('.split-input');
+                var $item = $percentageField.closest('.item');
+                var itemId = $item.find('input.order_item_id').val();
+                var $subtotalField = $lineCost.find('input.line_subtotal');
+                var $totalField = $lineCost.find('input.line_total');
+                
+                if (!$subtotalField.length || !$totalField.length) return;
+
+                var originalPrice = originalPrices[itemId] || parseFloat($subtotalField.val().toString().replace(',', '.')) || 0;
+                var percentage = parseFloat($percentageField.val()) || 0;
+
+                if (!isNaN(percentage)) {
+                    var newPrice = originalPrice * (1 + (percentage / 100));
+                    var newPriceStr = newPrice.toFixed(2).replace('.', ',');
+                    $totalField.val(newPriceStr).trigger('change');
+                }
+            });
+
+            // Gérer les changements de prix
+            $(document).on('change', '.line_total', function() {
+                var $totalField = $(this);
+                var $item = $totalField.closest('.item');
+                var $percentageField = $item.find('.price-percentage');
+                if ($percentageField.length) {
+                    $percentageField.val('');
+                }
+            });
+
+            // Ajouter les champs au chargement initial
+            addPercentageField();
+
+            // Ajouter les champs lors de l'ajout d'items
+            $(document.body).on('woocommerce_order_items_added', addPercentageField);
+
+            // S'assurer que les champs sont ajoutés après l'initialisation de WooCommerce
+            $(window).on('load', function() {
+                setTimeout(addPercentageField, 500);
+            });
+        });
+        </script>
+        <?php
+    }
+});
