@@ -508,6 +508,21 @@ add_action('admin_footer', function() {
                     </div>
 
                     <div class="ghost-product-field">
+                        <label for="ghost_product_description">Description</label>
+                        <div id="ghost_product_description_container" style="margin-bottom:5px;">
+                            <?php
+                            wp_editor('', 'ghost_product_description', array(
+                                'textarea_name' => 'ghost_product_description',
+                                'media_buttons' => true,
+                                'textarea_rows' => 5,
+                                'teeny' => true,
+                                'quicktags' => true
+                            ));
+                            ?>
+                        </div>
+                    </div>
+
+                    <div class="ghost-product-field">
                         <label for="ghost_product_price">Prix *</label>
                         <input type="number" id="ghost_product_price" name="ghost_product_price" placeholder="Prix" step="0.01" style="width:100%; margin-bottom:5px;" required />
                     </div>
@@ -978,6 +993,7 @@ add_action('admin_footer', function() {
                     const data = {
                         action: 'create_ghost_product',
                         name,
+                        description: tinyMCE.get('ghost_product_description').getContent(),
                         price,
                         tax_class: taxClass,
                         categories,
@@ -1114,6 +1130,7 @@ add_action('wp_ajax_create_ghost_product', function () {
         
         // Nettoyage des données
         $name = sanitize_text_field($_POST['name'] ?? '');
+        $description = wp_kses_post($_POST['description'] ?? '');
         $price = floatval($_POST['price'] ?? 0);
         $tax_class = sanitize_text_field($_POST['tax_class'] ?? '');
         $categories = array_map('intval', explode(',', $_POST['categories'] ?? ''));
@@ -1137,6 +1154,7 @@ add_action('wp_ajax_create_ghost_product', function () {
         // Création du produit
         $post_data = array(
             'post_title' => $name,
+            'post_content' => $description,
             'post_type' => 'product',
             'post_status' => 'publish'
         );
