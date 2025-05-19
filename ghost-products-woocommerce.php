@@ -3,7 +3,7 @@
 Plugin Name: Ghost Products WooCommerce
 Description: Crée des produits WooCommerce cachés (invisibles sur le front) avec AJAX et ajoute une vue admin dédiée.
 Version: 1.1
-Author: ChatGPT
+Author: Agarta
 */
 
 // 1. Ajouter le sous-menu "Ghost Products"
