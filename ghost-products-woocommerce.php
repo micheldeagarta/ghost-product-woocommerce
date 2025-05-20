@@ -57,23 +57,23 @@ function render_ghost_products_page() {
             </thead>
             <tbody>
                 <?php
-                $args = [
-                    'post_type' => 'product',
-                    'posts_per_page' => 20,
+    $args = [
+        'post_type' => 'product',
+        'posts_per_page' => 20,
                     'paged' => get_query_var('paged') ? get_query_var('paged') : 1,
-                    'meta_query' => [
-                        [
-                            'key' => '_catalog_visibility',
-                            'value' => 'hidden'
-                        ],
-                    ],
-                ];
+        'meta_query' => [
+            [
+                'key' => '_catalog_visibility',
+                'value' => 'hidden'
+            ],
+        ],
+    ];
 
-                $query = new WP_Query($args);
+    $query = new WP_Query($args);
 
-                if ($query->have_posts()) {
-                    while ($query->have_posts()) {
-                        $query->the_post();
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
                         $product = wc_get_product(get_the_ID());
                         $thumbnail = $product->get_image('thumbnail');
                         $price = $product->get_price_html();
@@ -117,14 +117,14 @@ function render_ghost_products_page() {
                         </tr>
                         <?php
                     }
-                } else {
+    } else {
                     ?>
                     <tr>
                         <td colspan="8">Aucun produit fantôme trouvé.</td>
                     </tr>
                     <?php
                 }
-                wp_reset_postdata();
+    wp_reset_postdata();
                 ?>
             </tbody>
         </table>
@@ -499,7 +499,7 @@ add_action('admin_footer', function() {
                     <span class="ghost-modal-close">&times;</span>
                 </div>
                 <div class="ghost-modal-body">
-                    <div id="ajax-product-response"></div>
+    <div id="ajax-product-response"></div>
 
                     <!-- Informations de base -->
                     <div class="ghost-product-field">
@@ -622,7 +622,7 @@ add_action('admin_footer', function() {
                     </div>
                 </div>
                 <div class="ghost-modal-footer">
-                    <button type="button" class="button button-primary" onclick="createGhostProduct()">Créer le produit</button>
+    <button type="button" class="button button-primary" onclick="createGhostProduct()">Créer le produit</button>
                     <button type="button" class="button" onclick="closeGhostProductModal()">Annuler</button>
                 </div>
             </div>
@@ -682,7 +682,7 @@ add_action('admin_footer', function() {
             .select2-container { width: 100% !important; }
         </style>
 
-        <script>
+    <script>
             jQuery(document).ready(function($) {
 
                 // --- Modal Functions ---
@@ -965,8 +965,8 @@ add_action('admin_footer', function() {
 
                 // Fonction pour créer le produit
                 window.createGhostProduct = function() {
-                    const name = document.getElementById('ghost_product_name').value;
-                    const price = document.getElementById('ghost_product_price').value;
+            const name = document.getElementById('ghost_product_name').value;
+            const price = document.getElementById('ghost_product_price').value;
                     const taxClass = document.getElementById('ghost_product_tax_class').value;
                     const categories = jQuery('#ghost_product_category').val();
                     const brand = jQuery('#ghost_product_brand').val();
@@ -990,11 +990,11 @@ add_action('admin_footer', function() {
                         }
                     });
 
-                    const data = {
-                        action: 'create_ghost_product',
-                        name,
+            const data = {
+                action: 'create_ghost_product',
+                name,
                         description: tinyMCE.get('ghost_product_description').getContent(),
-                        price,
+                price,
                         tax_class: taxClass,
                         categories,
                         brand,
@@ -1005,23 +1005,23 @@ add_action('admin_footer', function() {
                         attributes: JSON.stringify(attributes),
                         security: '<?php echo wp_create_nonce("create_ghost_product_nonce"); ?>',
                         order_id: jQuery('#custom_shipping_method').data('order-id') // Get order ID from shipping method select
-                    };
+            };
 
-                    document.getElementById('ajax-product-response').innerHTML = 'Création...';
+            document.getElementById('ajax-product-response').innerHTML = 'Création...';
 
-                    fetch(ajaxurl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams(data)
-                    })
-                    .then(res => res.json())
-                    .then(res => {
-                        if (res.success) {
-                            document.getElementById('ajax-product-response').innerHTML =
-                                '<div class="notice notice-success"><p>Produit créé : <strong>' + res.data.name + '</strong></p></div>';
+            fetch(ajaxurl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    document.getElementById('ajax-product-response').innerHTML =
+                        '<div class="notice notice-success"><p>Produit créé : <strong>' + res.data.name + '</strong></p></div>';
                             // Réinitialiser tous les champs
-                            document.getElementById('ghost_product_name').value = '';
-                            document.getElementById('ghost_product_price').value = '';
+                    document.getElementById('ghost_product_name').value = '';
+                    document.getElementById('ghost_product_price').value = '';
                             document.getElementById('ghost_product_tax_class').value = '';
                             jQuery('#ghost_product_category').val(null).trigger('change');
                             jQuery('#ghost_product_brand').val(null).trigger('change');
@@ -1059,11 +1059,11 @@ add_action('admin_footer', function() {
                                 }
 
 
-                        } else {
-                            document.getElementById('ajax-product-response').innerHTML =
-                                '<div class="notice notice-error"><p>' + res.data + '</p></div>';
-                        }
-                    });
+                } else {
+                    document.getElementById('ajax-product-response').innerHTML =
+                        '<div class="notice notice-error"><p>' + res.data + '</p></div>';
+                }
+            });
                 };
 
                 // Attach click event to the button to open the modal
@@ -1102,9 +1102,9 @@ add_action('admin_footer', function() {
 
             }); // End of jQuery(document).ready()
 
-        </script>
-        <?php
-    }
+    </script>
+    <?php
+}
 });
 
 // Fonction de logging pour le débogage
@@ -1126,12 +1126,12 @@ function ghost_log_error($message, $data = null) {
 add_action('wp_ajax_create_ghost_product', function () {
     try {
         error_log('create_ghost_product AJAX called. POST data: ' . print_r($_POST, true));
-        check_ajax_referer('create_ghost_product_nonce', 'security');
-        
+    check_ajax_referer('create_ghost_product_nonce', 'security');
+
         // Nettoyage des données
-        $name = sanitize_text_field($_POST['name'] ?? '');
+    $name = sanitize_text_field($_POST['name'] ?? '');
         $description = wp_kses_post($_POST['description'] ?? '');
-        $price = floatval($_POST['price'] ?? 0);
+    $price = floatval($_POST['price'] ?? 0);
         $tax_class = sanitize_text_field($_POST['tax_class'] ?? '');
         $categories = array_map('intval', explode(',', $_POST['categories'] ?? ''));
         $brand = intval($_POST['brand'] ?? 0);
@@ -1153,9 +1153,9 @@ add_action('wp_ajax_create_ghost_product', function () {
 
         // Création du produit
         $post_data = array(
-            'post_title' => $name,
+        'post_title' => $name,
             'post_content' => $description,
-            'post_type' => 'product',
+        'post_type' => 'product',
             'post_status' => 'publish'
         );
         
@@ -1245,13 +1245,13 @@ add_action('wp_ajax_create_ghost_product', function () {
                         'is_variation' => 0,
                         'is_taxonomy' => 1,
                     ];
-                }
-            }
-
-            if (!empty($attributes)) {
-                update_post_meta($post_id, '_product_attributes', $attributes);
             }
         }
+
+        if (!empty($attributes)) {
+            update_post_meta($post_id, '_product_attributes', $attributes);
+        }
+    }
 
         // Add the product to the order if order_id is provided
         $order_id = intval($_POST['order_id'] ?? 0);
@@ -1268,7 +1268,7 @@ add_action('wp_ajax_create_ghost_product', function () {
             }
         }
 
-        wp_send_json_success(['id' => $post_id, 'name' => $name]);
+    wp_send_json_success(['id' => $post_id, 'name' => $name]);
 
     } catch (Exception $e) {
         error_log('Error in create_ghost_product AJAX: ' . $e->getMessage());
@@ -1916,85 +1916,171 @@ function calculate_gls_rate_simplified($method_id, $order) {
 
 add_action('admin_footer', function() {
     global $post;
-    // Only load the modal on order edit pages
     if ($post && $post->post_type === 'shop_order') {
         ?>
         <style>
             .price-percentage-field {
                 display: inline-block;
                 margin-left: 10px;
-            }
-            .price-percentage-field input {
-                width: 80px !important;
+                vertical-align: middle;
             }
             .price-percentage-field label {
                 margin-right: 5px;
+                font-weight: bold;
+            }
+            .price-percentage-field input {
+                width: 60px !important;
+                text-align: right;
+            }
+            .split-input {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+            .split-input .input {
+                display: flex;
+                align-items: center;
+                gap: 5px;
             }
         </style>
         <script type="text/javascript">
         jQuery(document).ready(function($) {
-            // Stocker le prix original pour chaque ligne
-            var originalPrices = {};
+            console.log('Script initialized');
+            var isUpdatingPrice = false;
+            var lastTableContent = '';
 
-            // Ajouter le champ pourcentage à chaque ligne
+            // Fonction pour ajouter le champ pourcentage
             function addPercentageField() {
-                $('.item').each(function() {
+                console.log('Adding percentage fields');
+                $('.woocommerce_order_items .item').each(function() {
                     var $lineCost = $(this).find('.line_cost .edit .split-input');
                     if (!$lineCost.find('.price-percentage-field').length) {
-                        var $percentageField = $('<div class="price-percentage-field"><label>%</label><input type="number" step="0.01" class="price-percentage" /></div>');
+                        console.log('Creating new percentage field');
+                        var $percentageField = $('<div class="input price-percentage-field"><label>%</label><input type="text" class="price-percentage"></div>');
                         $lineCost.append($percentageField);
-                        
-                        // Stocker le prix original
-                        var itemId = $(this).find('input.order_item_id').val();
-                        var $subtotalField = $lineCost.find('input.line_subtotal');
-                        if ($subtotalField.length) {
-                            var subtotal = parseFloat($subtotalField.val().toString().replace(',', '.')) || 0;
-                            originalPrices[itemId] = subtotal;
-                        }
                     }
                 });
             }
 
+            // Fonction pour vérifier les changements dans la table
+            function checkTableChanges() {
+                var currentContent = $('.woocommerce_order_items').html();
+                if (currentContent !== lastTableContent) {
+                    console.log('Table content changed');
+                    lastTableContent = currentContent;
+                    addPercentageField();
+                }
+            }
+
+            // Ajouter les champs au chargement initial
+            addPercentageField();
+            lastTableContent = $('.woocommerce_order_items').html();
+
+            // Observer les changements dans le DOM pour détecter les mises à jour React
+            var observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' || mutation.type === 'subtree') {
+                        console.log('DOM mutation detected');
+                        checkTableChanges();
+                    }
+                });
+            });
+
+            // Configurer l'observateur avec une configuration plus large
+            var orderItemsTable = document.querySelector('.woocommerce_order_items');
+            if (orderItemsTable) {
+                observer.observe(orderItemsTable, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                    attributes: true
+                });
+            }
+
+            // Observer aussi le conteneur parent pour les mises à jour React
+            var orderContainer = document.querySelector('#woocommerce-order-data');
+            if (orderContainer) {
+                observer.observe(orderContainer, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                    attributes: true
+                });
+            }
+
+            // Vérifier périodiquement les changements
+            setInterval(checkTableChanges, 1000);
+
             // Gérer les changements de pourcentage
-            $(document).on('input', '.price-percentage', function() {
+            $(document).on('keyup', '.price-percentage', function(e) {
+                console.log('Keyup event triggered');
                 var $percentageField = $(this);
+                var value = $percentageField.val();
+                
+                // Nettoyer la valeur pour n'avoir que des chiffres, un point et un signe négatif au début
+                value = value.replace(/[^\d.-]/g, '');
+                value = value.replace(/^-+/, '-');
+                var parts = value.split('.');
+                if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                }
+                
+                $percentageField.val(value);
+                
+                // Calculer le nouveau prix
                 var $lineCost = $percentageField.closest('.split-input');
-                var $item = $percentageField.closest('.item');
-                var itemId = $item.find('input.order_item_id').val();
                 var $subtotalField = $lineCost.find('input.line_subtotal');
                 var $totalField = $lineCost.find('input.line_total');
                 
-                if (!$subtotalField.length || !$totalField.length) return;
+                if ($subtotalField.length && $totalField.length) {
+                    var originalPrice = parseFloat($subtotalField.val().toString().replace(',', '.')) || 0;
+                    var percentage = parseFloat(value) || 0;
 
-                var originalPrice = originalPrices[itemId] || parseFloat($subtotalField.val().toString().replace(',', '.')) || 0;
-                var percentage = parseFloat($percentageField.val()) || 0;
-
-                if (!isNaN(percentage)) {
-                    var newPrice = originalPrice * (1 + (percentage / 100));
-                    var newPriceStr = newPrice.toFixed(2).replace('.', ',');
-                    $totalField.val(newPriceStr).trigger('change');
+                    if (!isNaN(percentage)) {
+                        isUpdatingPrice = true;
+                        var newPrice = originalPrice * (1 - (Math.abs(percentage) / 100));
+                        var newPriceStr = newPrice.toFixed(2).replace('.', ',');
+                        
+                        $totalField.val(newPriceStr).trigger('change');
+                        
+                        setTimeout(function() {
+                            isUpdatingPrice = false;
+                        }, 100);
+                    }
                 }
             });
 
             // Gérer les changements de prix
             $(document).on('change', '.line_total', function() {
+                console.log('Line total changed');
                 var $totalField = $(this);
-                var $item = $totalField.closest('.item');
-                var $percentageField = $item.find('.price-percentage');
-                if ($percentageField.length) {
+                var $percentageField = $totalField.closest('.split-input').find('.price-percentage');
+                
+                if (!isUpdatingPrice && $percentageField.length) {
+                    console.log('Clearing percentage field');
                     $percentageField.val('');
                 }
             });
 
-            // Ajouter les champs au chargement initial
-            addPercentageField();
+            // Observer les changements dans les boutons
+            var buttonObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'disabled') {
+                        var $button = $(mutation.target);
+                        if (!$button.prop('disabled')) {
+                            console.log('Button state changed - checking table');
+                            setTimeout(checkTableChanges, 500);
+                        }
+                    }
+                });
+            });
 
-            // Ajouter les champs lors de l'ajout d'items
-            $(document.body).on('woocommerce_order_items_added', addPercentageField);
-
-            // S'assurer que les champs sont ajoutés après l'initialisation de WooCommerce
-            $(window).on('load', function() {
-                setTimeout(addPercentageField, 500);
+            // Observer les boutons de sauvegarde et de calcul
+            $('.save-action, .calculate-action').each(function() {
+                buttonObserver.observe(this, {
+                    attributes: true,
+                    attributeFilter: ['disabled']
+                });
             });
         });
         </script>
