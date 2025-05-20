@@ -2112,3 +2112,155 @@ add_action('admin_footer', function() {
         <?php
     }
 });
+
+add_action('admin_footer', function() {
+    global $post;
+    ?>
+    <style>
+        .ghost-loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: ghost-spin 1s linear infinite;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        @keyframes ghost-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ghost-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .ghost-status.hidden {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .ghost-status.visible {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .toggle-ghost {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 100px;
+        }
+
+        .toggle-ghost.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+
+    <script type="text/javascript">
+    jQuery(document).ready(function($) {
+        // Fonction pour créer le loader
+        function createLoader() {
+            return $('<div class="ghost-loader"></div>');
+        }
+
+        // Fonction pour gérer le basculement de visibilité
+        function toggleGhostVisibility(button) {
+            var $button = $(button);
+            var productId = $button.data('id');
+            var $status = $button.closest('tr').find('.ghost-status');
+            
+            // Ajouter le loader et désactiver le bouton
+            $button.addClass('loading').prop('disabled', true);
+            $button.prepend(createLoader());
+            
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'toggle_ghost_visibility',
+                    post_id: productId,
+                    security: '<?php echo wp_create_nonce("toggle_ghost_nonce"); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        if (response.data.new === 'hidden') {
+                            $status.removeClass('visible').addClass('hidden').text('Fantôme');
+                            $button.text('Rendre visible');
+                        } else {
+                            $status.removeClass('hidden').addClass('visible').text('Visible');
+                            $button.text('Rendre fantôme');
+                        }
+                    } else {
+                        alert('Erreur : ' + response.data);
+                    }
+                },
+                error: function() {
+                    alert('Une erreur est survenue lors de la mise à jour de la visibilité.');
+                },
+                complete: function() {
+                    // Retirer le loader et réactiver le bouton
+                    $button.find('.ghost-loader').remove();
+                    $button.removeClass('loading').prop('disabled', false);
+                }
+            });
+        }
+
+        // Gérer le clic sur le bouton dans la page Ghost Products
+        $(document).on('click', '.toggle-ghost', function(e) {
+            e.preventDefault();
+            toggleGhostVisibility(this);
+        });
+
+        // Gérer le clic sur le lien dans la liste des produits WooCommerce
+        $(document).on('click', 'a[onclick^="toggleGhostStatus"]', function(e) {
+            e.preventDefault();
+            var productId = $(this).closest('tr').find('input[name="post[]"]').val();
+            var $button = $(this);
+            var $status = $button.closest('td');
+            
+            // Ajouter le loader et désactiver le lien
+            $button.addClass('loading').css('pointer-events', 'none');
+            $button.prepend(createLoader());
+            
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'toggle_ghost_visibility',
+                    post_id: productId,
+                    security: '<?php echo wp_create_nonce("toggle_ghost_nonce"); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        if (response.data.new === 'hidden') {
+                            $status.find('span').css('color', 'red').text('Oui');
+                        } else {
+                            $status.find('span').css('color', 'green').text('Non');
+                        }
+                    } else {
+                        alert('Erreur : ' + response.data);
+                    }
+                },
+                error: function() {
+                    alert('Une erreur est survenue lors de la mise à jour de la visibilité.');
+                },
+                complete: function() {
+                    // Retirer le loader et réactiver le lien
+                    $button.find('.ghost-loader').remove();
+                    $button.removeClass('loading').css('pointer-events', '');
+                }
+            });
+        });
+    });
+    </script>
+    <?php
+});
