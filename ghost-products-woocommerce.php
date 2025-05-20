@@ -1125,13 +1125,12 @@ function ghost_log_error($message, $data = null) {
 // Mise à jour de la fonction de création de produit pour inclure le logging
 add_action('wp_ajax_create_ghost_product', function () {
     try {
-        error_log('create_ghost_product AJAX called. POST data: ' . print_r($_POST, true));
-    check_ajax_referer('create_ghost_product_nonce', 'security');
+        check_ajax_referer('create_ghost_product_nonce', 'security');
 
         // Nettoyage des données
-    $name = sanitize_text_field($_POST['name'] ?? '');
+        $name = sanitize_text_field($_POST['name'] ?? '');
         $description = wp_kses_post($_POST['description'] ?? '');
-    $price = floatval($_POST['price'] ?? 0);
+        $price = floatval($_POST['price'] ?? 0);
         $tax_class = sanitize_text_field($_POST['tax_class'] ?? '');
         $categories = array_map('intval', explode(',', $_POST['categories'] ?? ''));
         $brand = intval($_POST['brand'] ?? 0);
@@ -1140,6 +1139,7 @@ add_action('wp_ajax_create_ghost_product', function () {
         $image = intval($_POST['image'] ?? 0);
         $gallery = array_map('intval', explode(',', $_POST['gallery'] ?? ''));
         $raw_attributes = json_decode(stripslashes($_POST['attributes'] ?? '[]'), true);
+        $order_id = intval($_POST['order_id'] ?? 0);
 
         // Validation des données requises
         if (!$name) {
@@ -1152,58 +1152,60 @@ add_action('wp_ajax_create_ghost_product', function () {
         }
 
         // Création du produit
-        $post_data = array(
-        'post_title' => $name,
-            'post_content' => $description,
-        'post_type' => 'product',
-            'post_status' => 'publish'
-        );
+        $product = new WC_Product_Simple();
+        $product->set_name($name);
+        $product->set_description($description);
+        $product->set_regular_price($price);
+        $product->set_price($price);
         
-        $post_id = wp_insert_post($post_data);
+        // Définir la visibilité comme "invisible" et s'assurer que le produit est publié
+        $product->set_catalog_visibility('hidden');
+        $product->set_status('publish');
         
-        if (is_wp_error($post_id)) {
-            wp_send_json_error("Erreur lors de la création du produit: " . $post_id->get_error_message());
+        // Sauvegarder le produit
+        $product_id = $product->save();
+        
+        if (!$product_id) {
+            wp_send_json_error("Erreur lors de la création du produit.");
             return;
         }
 
-        // Mise à jour des métadonnées du produit
-        update_post_meta($post_id, '_regular_price', $price);
-        update_post_meta($post_id, '_price', $price);
-        update_post_meta($post_id, '_catalog_visibility', 'hidden');
-        
+        // Mettre à jour la meta _catalog_visibility directement pour s'assurer qu'elle est bien définie
+        update_post_meta($product_id, '_catalog_visibility', 'hidden');
+
         // Gestion des taxes
         if ($tax_class) {
-            update_post_meta($post_id, '_tax_class', $tax_class);
+            $product->set_tax_class($tax_class);
         }
 
         // Définir les catégories
         if (!empty($categories)) {
-            wp_set_object_terms($post_id, $categories, 'product_cat');
+            wp_set_object_terms($product_id, $categories, 'product_cat');
         }
 
         // Définir la marque
         if ($brand) {
-            wp_set_object_terms($post_id, [$brand], 'product_brand');
+            wp_set_object_terms($product_id, [$brand], 'product_brand');
         } elseif ($newBrand) {
             $brand_term = wp_insert_term($newBrand, 'product_brand');
             if (!is_wp_error($brand_term)) {
-                wp_set_object_terms($post_id, [$brand_term['term_id']], 'product_brand');
+                wp_set_object_terms($product_id, [$brand_term['term_id']], 'product_brand');
             }
         }
 
         // Définir l'étiquette
         if ($tag) {
-            wp_set_object_terms($post_id, [$tag], 'product_tag');
+            wp_set_object_terms($product_id, [$tag], 'product_tag');
         }
 
         // Définir l'image principale
         if ($image) {
-            set_post_thumbnail($post_id, $image);
+            set_post_thumbnail($product_id, $image);
         }
 
         // Définir la galerie d'images
         if (!empty($gallery)) {
-            update_post_meta($post_id, '_product_image_gallery', implode(',', $gallery));
+            update_post_meta($product_id, '_product_image_gallery', implode(',', $gallery));
         }
 
         // Traiter les attributs
@@ -1234,7 +1236,7 @@ add_action('wp_ajax_create_ghost_product', function () {
                     }
                     
                     if (!is_wp_error($term)) {
-                        wp_set_object_terms($post_id, [$term['term_id']], $taxonomy);
+                        wp_set_object_terms($product_id, [$term['term_id']], $taxonomy);
                     }
 
                     // Ajouter l'attribut à la liste des attributs du produit
@@ -1245,33 +1247,33 @@ add_action('wp_ajax_create_ghost_product', function () {
                         'is_variation' => 0,
                         'is_taxonomy' => 1,
                     ];
-            }
-        }
-
-        if (!empty($attributes)) {
-            update_post_meta($post_id, '_product_attributes', $attributes);
-        }
-    }
-
-        // Add the product to the order if order_id is provided
-        $order_id = intval($_POST['order_id'] ?? 0);
-        if ($order_id) {
-            error_log('Order ID received: ' . $order_id . '. Attempting to add product ' . $post_id . ' to order.');
-            $order = wc_get_order($order_id);
-            if ($order) {
-                $product = wc_get_product($post_id);
-                if ($product) {
-                    $order->add_product($product, 1); // Add one quantity of the product
-                    $order->calculate_totals();
-                    $order->save();
                 }
             }
+
+            if (!empty($attributes)) {
+                update_post_meta($product_id, '_product_attributes', $attributes);
+            }
         }
 
-    wp_send_json_success(['id' => $post_id, 'name' => $name]);
+        // Ajouter le produit à la commande si un order_id est fourni
+        if ($order_id) {
+            $order = wc_get_order($order_id);
+            if ($order) {
+                $order->add_product($product, 1, [
+                    'subtotal' => $price,
+                    'total' => $price
+                ]);
+                $order->calculate_totals();
+                $order->save();
+            }
+        }
+
+        // Sauvegarder une dernière fois pour s'assurer que tout est bien enregistré
+        $product->save();
+
+        wp_send_json_success(['id' => $product_id, 'name' => $name]);
 
     } catch (Exception $e) {
-        error_log('Error in create_ghost_product AJAX: ' . $e->getMessage());
         wp_send_json_error("Une erreur inattendue s'est produite: " . $e->getMessage());
     }
 });
@@ -1387,12 +1389,35 @@ add_action('wp_ajax_toggle_ghost_visibility', function () {
     check_ajax_referer('toggle_ghost_nonce', 'security');
 
     $post_id = intval($_POST['post_id'] ?? 0);
-    if (!$post_id || get_post_type($post_id) !== 'product') wp_send_json_error("Produit invalide.");
+    if (!$post_id || get_post_type($post_id) !== 'product') {
+        wp_send_json_error("Produit invalide.");
+        return;
+    }
 
-    $current = get_post_meta($post_id, '_catalog_visibility', true);
+    $product = wc_get_product($post_id);
+    if (!$product) {
+        wp_send_json_error("Produit introuvable.");
+        return;
+    }
+
+    $current = $product->get_catalog_visibility();
     $new = $current === 'hidden' ? 'visible' : 'hidden';
 
+    // Mettre à jour la visibilité via l'API WooCommerce
+    $product->set_catalog_visibility($new);
+    $product->save();
+
+    // Mettre à jour la meta directement aussi pour s'assurer de la cohérence
     update_post_meta($post_id, '_catalog_visibility', $new);
+
+    // Vérifier que la mise à jour a bien été effectuée
+    $updated_product = wc_get_product($post_id);
+    $actual_visibility = $updated_product->get_catalog_visibility();
+    
+    if ($actual_visibility !== $new) {
+        wp_send_json_error("Erreur lors de la mise à jour de la visibilité.");
+        return;
+    }
 
     wp_send_json_success(['new' => $new]);
 });
