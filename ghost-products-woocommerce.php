@@ -1947,6 +1947,7 @@ add_action('admin_footer', function() {
         jQuery(document).ready(function($) {
             console.log('Script initialized');
             var isUpdatingPrice = false;
+            var lastTableContent = '';
 
             // Fonction pour ajouter le champ pourcentage
             function addPercentageField() {
@@ -1961,29 +1962,70 @@ add_action('admin_footer', function() {
                 });
             }
 
+            // Fonction pour vérifier les changements dans la table
+            function checkTableChanges() {
+                var currentContent = $('.woocommerce_order_items').html();
+                if (currentContent !== lastTableContent) {
+                    console.log('Table content changed');
+                    lastTableContent = currentContent;
+                    addPercentageField();
+                }
+            }
+
             // Ajouter les champs au chargement initial
             addPercentageField();
+            lastTableContent = $('.woocommerce_order_items').html();
+
+            // Observer les changements dans le DOM pour détecter les mises à jour React
+            var observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' || mutation.type === 'subtree') {
+                        console.log('DOM mutation detected');
+                        checkTableChanges();
+                    }
+                });
+            });
+
+            // Configurer l'observateur avec une configuration plus large
+            var orderItemsTable = document.querySelector('.woocommerce_order_items');
+            if (orderItemsTable) {
+                observer.observe(orderItemsTable, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                    attributes: true
+                });
+            }
+
+            // Observer aussi le conteneur parent pour les mises à jour React
+            var orderContainer = document.querySelector('#woocommerce-order-data');
+            if (orderContainer) {
+                observer.observe(orderContainer, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                    attributes: true
+                });
+            }
+
+            // Vérifier périodiquement les changements
+            setInterval(checkTableChanges, 1000);
 
             // Gérer les changements de pourcentage
             $(document).on('keyup', '.price-percentage', function(e) {
                 console.log('Keyup event triggered');
                 var $percentageField = $(this);
                 var value = $percentageField.val();
-                console.log('Current value:', value);
                 
                 // Nettoyer la valeur pour n'avoir que des chiffres, un point et un signe négatif au début
-                value = value.replace(/[^\d.-]/g, ''); // Permet les chiffres, le point et le signe négatif
-                // S'assurer qu'il n'y a qu'un seul signe négatif au début
+                value = value.replace(/[^\d.-]/g, '');
                 value = value.replace(/^-+/, '-');
-                // S'assurer qu'il n'y a qu'un seul point
                 var parts = value.split('.');
                 if (parts.length > 2) {
                     value = parts[0] + '.' + parts.slice(1).join('');
                 }
-                console.log('Final value:', value);
                 
                 $percentageField.val(value);
-                console.log('Value set in field:', $percentageField.val());
                 
                 // Calculer le nouveau prix
                 var $lineCost = $percentageField.closest('.split-input');
@@ -1991,20 +2033,14 @@ add_action('admin_footer', function() {
                 var $totalField = $lineCost.find('input.line_total');
                 
                 if ($subtotalField.length && $totalField.length) {
-                    // Utiliser le prix subtotal comme base
                     var originalPrice = parseFloat($subtotalField.val().toString().replace(',', '.')) || 0;
                     var percentage = parseFloat(value) || 0;
-                    console.log('Original price:', originalPrice);
-                    console.log('Percentage:', percentage);
 
                     if (!isNaN(percentage)) {
                         isUpdatingPrice = true;
-                        // Inverser la logique : un pourcentage positif devient une remise négative
                         var newPrice = originalPrice * (1 - (Math.abs(percentage) / 100));
                         var newPriceStr = newPrice.toFixed(2).replace('.', ',');
-                        console.log('New price:', newPriceStr);
                         
-                        // Mettre à jour uniquement le prix total
                         $totalField.val(newPriceStr).trigger('change');
                         
                         setTimeout(function() {
@@ -2026,82 +2062,25 @@ add_action('admin_footer', function() {
                 }
             });
 
-            // Ajouter les champs lors de l'ajout d'items
-            $(document.body).on('woocommerce_order_items_added', function() {
-                console.log('Items added, adding percentage fields');
-                addPercentageField();
-            });
-
-            // Ajouter les champs après chaque mise à jour de la commande
-            $(document.body).on('woocommerce_order_items_updated', function() {
-                console.log('Order items updated, adding percentage fields');
-                addPercentageField();
-            });
-
-            // Ajouter les champs quand on passe en mode édition
-            $(document).on('click', '.edit-order-item', function() {
-                console.log('Edit mode activated');
-                setTimeout(addPercentageField, 100);
-            });
-
-            // Observer les changements dans le DOM pour détecter les mises à jour React
-            var observer = new MutationObserver(function(mutations) {
+            // Observer les changements dans les boutons
+            var buttonObserver = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList' && mutation.target.classList.contains('woocommerce_order_items')) {
-                        console.log('Order items table updated via React');
-                        addPercentageField();
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'disabled') {
+                        var $button = $(mutation.target);
+                        if (!$button.prop('disabled')) {
+                            console.log('Button state changed - checking table');
+                            setTimeout(checkTableChanges, 500);
+                        }
                     }
                 });
             });
 
-            // Configurer l'observateur
-            var orderItemsTable = document.querySelector('.woocommerce_order_items');
-            if (orderItemsTable) {
-                observer.observe(orderItemsTable, {
-                    childList: true,
-                    subtree: true
+            // Observer les boutons de sauvegarde et de calcul
+            $('.save-action, .calculate-action').each(function() {
+                buttonObserver.observe(this, {
+                    attributes: true,
+                    attributeFilter: ['disabled']
                 });
-            }
-
-            // Ajouter un écouteur pour le bouton de sauvegarde
-            $(document).on('click', '.save-action', function() {
-                console.log('Save button clicked');
-                setTimeout(addPercentageField, 500);
-            });
-
-            // Ajouter un écouteur pour le bouton de calcul
-            $(document).on('click', '.calculate-action', function() {
-                console.log('Calculate button clicked');
-                setTimeout(addPercentageField, 500);
-            });
-
-            // Ajouter un écouteur pour les changements dans le tableau
-            $(document).on('change', '.woocommerce_order_items input', function() {
-                console.log('Input changed in order items table');
-                setTimeout(addPercentageField, 100);
-            });
-
-            // Ajouter un écouteur pour les mises à jour du tableau
-            $(document).on('woocommerce_order_items_table_updated', function() {
-                console.log('Order items table updated event');
-                setTimeout(addPercentageField, 100);
-            });
-
-            // Ajouter un écouteur pour les mises à jour des totaux
-            $(document).on('woocommerce_order_totals_after_calculate', function() {
-                console.log('Order totals calculated event');
-                setTimeout(addPercentageField, 100);
-            });
-
-            // Ajouter un écouteur pour les mises à jour de la commande
-            $(document).on('woocommerce_order_saved', function() {
-                console.log('Order saved event');
-                setTimeout(addPercentageField, 100);
-            });
-
-            // Debug: Log all WooCommerce events
-            $(document.body).on('woocommerce_order_items_added woocommerce_order_items_updated woocommerce_order_items_table_updated woocommerce_order_totals_after_calculate woocommerce_order_saved', function(e) {
-                console.log('WooCommerce event triggered:', e.type);
             });
         });
         </script>
